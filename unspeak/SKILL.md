@@ -6,13 +6,18 @@ description: Remove LLM tells from writing. Applies to every sentence you produc
 
 # Unspeak
 
-When `references/style.md` or `references/reference-writing/` exist, reading them is mandatory before writing a word, and the style file's rules bind exactly like this file's. Match how the user writes: sentence length, punctuation, how plainly they say things, and their personal rules. Prefer the sample whose register matches what you are writing.
+## Write by imitation, clean by rules
+
+Imitation leads and the rules verify. Banning tells one by one only moves the model to its next-most-trained register, so the target voice has to come from the author's own writing, and the rules then strip what leaked through.
+
+1. **Immerse.** When `references/style.md` or `references/reference-writing/` exist, reading them is mandatory before writing a word. Pick the sample whose register matches the task and read it whole. It is writing you are about to continue. The style file's rules bind exactly like this file's.
+2. **Write as the author.** Draft the piece as a continuation of that author's work: their sentence swing, their punctuation, what they would notice and what they would leave out. Do not think about the rule lists while drafting. When you are generating from scratch (a new piece, no draft given), put the sample itself at the top of your working context first: `proofread.py --sample --register <register>` prints it, and you write directly under it, then delete the sample from the output.
+3. **Hunt tells.** Now take the draft through every section below and `references/vocabulary.md`, and remove or rewrite everything they name. Nothing on these lists survives because the draft came out voice-first.
+4. **Verify.** Run `proofread.py` and fix what it names, on both axes, until it passes. It reports deslop findings with what to do about each, and distance from the reference writing (Burrows's Delta plus the author's own metric bands) with the words and habits causing it.
 
 Never reuse wording from `references/examples.md` or the reference writing: they teach the pattern, and copying their words into output is a defect the leak check flags.
 
-Read `references/vocabulary.md` and do not use those words. They are abstract, metaphorical, and out of place; use the word that expresses the meaning in that context. Following the list yourself comes first, the script only verifies.
-
-Run `proofread.py` on prose before returning it. It reports two axes: deslop findings, each with what to do about it, and distance from the reference writing (Burrows's Delta plus the author's own metric bands), with the words and habits causing it. Fix what it names and re-run until both axes pass.
+The words in `references/vocabulary.md` are abstract, metaphorical, and out of place; use the word that expresses the meaning in that context.
 
 1. **Don't use slangy metaphors that fit any context and so mean nothing concrete.**
 2. **Every word should serve a purpose, delete words that don't communicate clearly and create filler prose.**

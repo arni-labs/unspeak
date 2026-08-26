@@ -895,13 +895,43 @@ def report(path: Path, findings: list[Finding], stats: dict[str, float],
             print("    " + line)
 
 
+def print_sample(register: str | None) -> int:
+    """--sample [register]: print the verbatim reference sample so a generation
+    prompt can carry the author's writing ahead of the task. Corpus as prompt,
+    not as reference."""
+    paths = sorted(REFERENCE_DIR.glob("*.md")) if REFERENCE_DIR.exists() else []
+    best = None
+    for path in paths:
+        raw = path.read_text()
+        r = _register_of(raw)
+        body = verbatim_of(raw).strip()
+        if not body:
+            continue
+        if register and r == register:
+            best = (r, body)
+            break
+        if best is None:
+            best = (r, body)
+    if best is None:
+        print("no reference samples")
+        return 1
+    print(f"# register: {best[0]}\n")
+    print(best[1])
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("files", nargs="*", type=Path)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self", action="store_true", help="run on this skill's own files")
     ap.add_argument("--register", help="compare only against reference files with this register")
+    ap.add_argument("--sample", action="store_true",
+                    help="print the matching verbatim reference sample for use as a generation prompt prefix")
     args = ap.parse_args()
+
+    if args.sample:
+        return print_sample(args.register)
 
     vocab = load_vocabulary()
     words, live = corpus_status()
