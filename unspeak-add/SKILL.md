@@ -1,5 +1,6 @@
 ---
 name: unspeak-add
+version: "0.1.0"
 description: File new LLM-tell words, phrases, or bad snippets into the unspeak skill's lists. Use when the user invokes /unspeak-add followed by the items.
 ---
 
