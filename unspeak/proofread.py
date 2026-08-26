@@ -854,12 +854,21 @@ def load_style() -> dict[str, list[str]]:
     return load_vocabulary(STYLE)
 
 
+def strip_code(text: str) -> str:
+    """Blank fenced code only, offsets kept. Rhythm and punctuation checks use
+    this instead of the full mask: quoted prose must stay (masking it invented
+    stub runs), but SQL and code lines are not sentences, and their semicolons,
+    parentheses, and line lengths kept flagging code-heavy posts."""
+    return _FENCED.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+
+
 def run_checks(raw: str, vocab: dict[str, list[str]],
                src_path: Path | None = None) -> list[Finding]:
     # Pattern checks read the masked text so quoted examples do not fire.
-    # Rhythm checks read the raw text: masking blanks a quoted span, which
-    # shortens the sentence around it and invents stub runs that are not there.
+    # Rhythm and punctuation checks read prose-only text: quotes kept, fenced
+    # code blanked.
     text = mask(raw)
+    prose = strip_code(raw)
     style = load_style()
     keep = {w.lower() for w in section(style, "terms of art")}
 
@@ -887,8 +896,8 @@ def run_checks(raw: str, vocab: dict[str, list[str]],
     findings += check_absence(text)
     findings += check_buried_verbs(text)
     findings += check_headings(text)
-    findings += check_stub_runs(raw)
-    findings += check_openers(raw)
+    findings += check_stub_runs(prose)
+    findings += check_openers(prose)
     findings += check_words(text, section(vocab, "chatbot residue"), "chatbot residue")
     findings += check_extra(text)
     findings += check_heading_restated(text)
@@ -896,8 +905,8 @@ def run_checks(raw: str, vocab: dict[str, list[str]],
     if src_path is None or src_path.name != "examples.md":
         # examples.md is the gram source; scanning it against itself is noise.
         findings += check_example_leak(text)
-    findings += check_punctuation(text)
-    findings += stylometry_findings(stylometry(raw))
+    findings += check_punctuation(prose)
+    findings += stylometry_findings(stylometry(prose))
     return sorted(findings, key=lambda f: (f.line, f.rule))
 
 
