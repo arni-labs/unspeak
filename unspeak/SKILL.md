@@ -6,7 +6,7 @@ description: Remove LLM tells from writing. Applies to every sentence you produc
 
 # Unspeak
 
-Read `references/reference-writing/` and `references/style.md`, and match how the user writes: sentence length, punctuation, how plainly they say things, and their personal rules. Prefer the sample whose register matches what you are writing.
+When `references/style.md` or `references/reference-writing/` exist, reading them is mandatory before writing a word, and the style file's rules bind exactly like this file's. Match how the user writes: sentence length, punctuation, how plainly they say things, and their personal rules. Prefer the sample whose register matches what you are writing.
 
 Never reuse wording from `references/examples.md` or the reference writing: they teach the pattern, and copying their words into output is a defect the leak check flags.
 
@@ -91,6 +91,8 @@ An LLM sentence wraps its point in a setup and a tail. The structures below are 
 14. **Heading restated:** a heading followed by one line repeating it.
 15. **Grand speak:** "before anyone says the work is complete"; say the condition plainly.
 16. **Opening tease:** dangling the payoff detail in the first sentence ("...until I had eleven answers in front of me at once"); start with the situation.
+19. **Self-appraisal:** the writer grading their own experience as they report it: "bad in a way I didn't anticipate", "which is a strange combination to sit in for an hour", "not because I had any reason to think I'd be good". Report what happened and what you did; the reader decides what was strange. When the tells below are all removed, this is the register the model retreats to, so hunt it deliberately: at most one appraisal in a piece, and only where the experience alone cannot say it.
+20. **Anticipation frame:** "in a way I didn't expect", "what I didn't anticipate was"; the adjectival cousin of emotional flatline. Say what happened without the surprise wrapper.
 
 ## Chatbot residue
 
