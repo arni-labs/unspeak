@@ -1,6 +1,6 @@
 ---
 name: unspeak
-version: "0.1.0"
+version: "0.2.0"
 description: Remove LLM tells from writing. Applies to every sentence you produce, not only when asked.
 ---
 

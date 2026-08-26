@@ -1,6 +1,6 @@
 ---
 name: unspeak-init
-version: "0.1.0"
+version: "0.2.0"
 description: Set up the unspeak writing skill for a new user. Collects their writing samples into the reference corpus and starts their personal style file. Use when the user invokes /unspeak-init or asks to set unspeak up.
 ---
 
