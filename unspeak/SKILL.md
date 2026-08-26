@@ -75,6 +75,7 @@ An LLM sentence wraps its point in a setup and a tail. The structures below are 
 8. **Universal quantifiers:** "taught in every first-year course"; use the real scope.
 9. **Superlative claim:** "throughput has never been higher"; make the claim specific or honest instead of bigger.
 10. **Illustrative list:** examples listed to perform breadth, "from anywhere: my laptop, Claude's cloud, Cursor's cloud"; list only what the reader needs.
+11. **Specificity as texture:** prices, clock times, ages, and model numbers sprinkled to make invented prose feel lived-in ("$1,900 Yamaha at 37, 25 minutes at 6:40am, 40 to 63 bpm"). A detail earns its place by carrying a feeling or a fact the piece needs, and a piece supports one or two. Everywhere, they read as set dressing.
 
 ## Framing
 
@@ -98,6 +99,7 @@ An LLM sentence wraps its point in a setup and a tail. The structures below are 
 16. **Opening tease:** dangling the payoff detail in the first sentence ("...until I had eleven answers in front of me at once"); start with the situation.
 19. **Self-appraisal:** the writer grading their own experience as they report it: "bad in a way I didn't anticipate", "which is a strange combination to sit in for an hour", "not because I had any reason to think I'd be good". Report what happened and what you did; the reader decides what was strange. When the tells below are all removed, this is the register the model retreats to, so hunt it deliberately: at most one appraisal in a piece, and only where the experience alone cannot say it.
 20. **Anticipation frame:** "in a way I didn't expect", "what I didn't anticipate was"; the adjectival cousin of emotional flatline. Say what happened without the surprise wrapper.
+21. **Vague-way qualifier:** "badly in a particular way", "a specific kind of quiet", "a certain kind of tired"; the phrase promises precision and delivers none. Name the way, or drop the qualifier.
 
 ## Chatbot residue
 

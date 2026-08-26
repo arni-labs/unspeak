@@ -289,6 +289,8 @@ EXTRA = [
      "contrast tail", "drop the foil and keep the claim"),
     (re.compile(r"\bin\s+a\s+way\s+(?:i|we|you)\s+(?:didn'?t|never|couldn'?t|hadn'?t)\b", re.I),
      "anticipation frame", "say what happened without the surprise wrapper"),
+    (re.compile(r"\bin\s+a\s+(?:particular|specific|certain|strange|special|peculiar)\s+way\b|\ba\s+(?:particular|specific|certain|special|peculiar)\s+kind\s+of\b", re.I),
+     "vague-way qualifier", "name the way, or drop the qualifier"),
     (re.compile(r",?\s*which\s+(?:is|was)\s+a\s+\w+\s+(?:combination|feeling|thing|experience|place)\b", re.I),
      "self-appraisal", "the reader decides what it was"),
     (re.compile(r",?\s*so\s+(?:nobody|no one)\s+(?:has|have|needs?)\s+to\b[^.\n]{0,50}", re.I),
@@ -748,6 +750,23 @@ def check_example_leak(text: str) -> list[Finding]:
     return out
 
 
+TEXTURE = re.compile(
+    r"\$[\d,]+|\b\d{1,2}:\d{2}\b|\bat\s+(?:aged?\s+)?\d{2}\b|\b\d+\s?(?:bpm|am|pm)\b", re.I)
+
+
+def check_texture_density(text: str) -> list[Finding]:
+    """Prices, clock times, ages: invented-texture details. One or two carry a
+    piece; a spread of them is set dressing. Threshold: more than 3 per piece
+    under 400 words."""
+    hits = list(TEXTURE.finditer(text))
+    words = len(WORD.findall(text))
+    if words and len(hits) > 3 and len(hits) * 400 / max(words, 1) > 3.5:
+        spans = ", ".join(m.group(0) for m in hits[:6])
+        return [Finding(line_of(text, hits[0].start()), "specificity as texture",
+                        spans, "keep the one or two details the piece needs")]
+    return []
+
+
 # One action per rule, so the deslop report tells the agent what to do,
 # not only where it failed.
 RULE_ADVICE = {
@@ -777,6 +796,8 @@ RULE_ADVICE = {
     "example leak": "the example teaches the shape, not the words",
     "contrast tail": "drop the foil and keep the claim",
     "grand speak": "state the condition plainly",
+    "vague-way qualifier": "name the way, or drop the qualifier",
+    "specificity as texture": "keep the one or two details the piece needs",
 }
 
 
@@ -871,6 +892,7 @@ def run_checks(raw: str, vocab: dict[str, list[str]],
     findings += check_words(text, section(vocab, "chatbot residue"), "chatbot residue")
     findings += check_extra(text)
     findings += check_heading_restated(text)
+    findings += check_texture_density(text)
     if src_path is None or src_path.name != "examples.md":
         # examples.md is the gram source; scanning it against itself is noise.
         findings += check_example_leak(text)
