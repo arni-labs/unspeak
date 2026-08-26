@@ -1,5 +1,7 @@
 # unspeak
 
+![unspeak banner](banner.png)
+
 A writing skill for coding agents to remove LLM tells and keep the writer's voice. Works with any harness that reads SKILL.md (Claude Code, Codex, Cursor, and others).
 
 ## Use
