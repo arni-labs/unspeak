@@ -1,31 +1,43 @@
 # unspeak
 
-A writing skill for coding agents. It removes LLM tells and keeps the writer's voice. Works with any harness that reads SKILL.md (Claude Code, Codex, Cursor, and others).
+A writing skill for coding agents to remove LLM tells and keep the writer's voice. Works with any harness that reads SKILL.md (Claude Code, Codex, Cursor, and others).
 
-Two rules run it. Don't use slangy metaphors that fit any context and so mean nothing concrete, and delete every word that doesn't communicate. An LLM sentence wraps its point in a setup and a tail, and the fix is always the same, say the point plainly.
+## Use
+
+- `/unspeak` rewrites the draft in front of you. Add words to direct it: `/unspeak this file`, `/unspeak write about ...`.
+- `/unspeak-init` builds your voice reference: paste a few pieces of your writing, the agent files them.
+- `/unspeak-add word, phrase, "bad snippet"` files new offenders into the lists.
+- `python3 unspeak/proofread.py draft.md` checks a file without an agent.
 
 ## Examples
 
-"My throughput has never been higher" becomes "I ship more PRs than I did in December".
+The first two paragraphs of a technical post and a personal blog. The draft is a vanilla model writing from a bare prompt; the rewrite is an agent told only "unspeak this draft".
 
-"The cache had a correctness problem that survived every release" becomes "We never fixed the correctness problem in the cache".
+<table>
+<tr><th>Draft</th><th>unspeak</th></tr>
+<tr><td>Last month, our internal ops dashboard started timing out during peak hours. Not every load — just enough to generate a steady trickle of complaints from the warehouse team, who use it to track order fulfillment in real time. The first instinct was &quot;add more caching,&quot; but we wanted to understand what was actually slow before papering over it.<br><br>We started with our Postgres slow query log, filtered to anything over 500ms in the last 24 hours. One query stood out immediately: it powered the &quot;Orders Pending Fulfillment&quot; widget, and it was averaging 4.2 seconds — with tail latencies spiking past 12 seconds during the 9am shift-change rush.</td><td>Last month our internal ops dashboard started timing out during peak hours, on some loads and not others. The warehouse team, who use it to track order fulfillment, kept reporting it. We read the slow query log before adding more caching.<br><br>We filtered the Postgres slow query log to anything over 500ms in the last 24 hours. The query behind the &quot;Orders Pending Fulfillment&quot; widget averaged 4.2 seconds, with tail latencies past 12 seconds during the 9am shift change.</td></tr>
+</table>
 
-"One conflict worth your call" becomes "This needs a decision".
-
-"These credentials expire the moment the task ends, so there is no persistent credential to exfiltrate" loses the tail, because the reader can infer it.
+<table>
+<tr><th>Draft</th><th>unspeak</th></tr>
+<tr><td>I bought a used tenor ukulele on a Tuesday in March, mostly because the guitar in my closet had twelve years of dust on it and felt like a rebuke every time I opened the closet door. The ukulele felt smaller, less judgmental. Four strings instead of six. A toy, I told myself, so it wouldn&#x27;t matter if I was bad at it.<br><br>I was very bad at it. My fingers, forty-one years old and calibrated for typing and chopping onions, did not want to hold a C chord. They wanted to do literally anything else. The first week, I could get through &quot;Riptide&quot; if you squinted with your ears — chunks of silence where a chord change should be, a buzzing string I never quite pinned down.</td><td>I bought a used tenor ukulele on a Tuesday in March, mostly because the guitar in my closet had twelve years of dust on it and I had stopped opening that door. The ukulele is smaller and has four strings instead of six, and I told myself it was a toy so being bad at it wouldn&#x27;t matter.<br><br>I was bad at it. My fingers are forty-one years old and trained for typing and chopping onions, and they would not hold a C chord. The first week I could get through &quot;Riptide&quot; with gaps of silence where the chord changes go and one string buzzing that I never pinned down.</td></tr>
+</table>
 
 ## Install
 
+Three skills, three folders. Clone and link them into your skills directory:
+
 ```
-git clone https://github.com/arni-labs/unspeak ~/.claude/skills/unspeak
+git clone https://github.com/arni-labs/unspeak
+ln -s "$PWD/unspeak/unspeak" "$PWD/unspeak/unspeak-init" "$PWD/unspeak/unspeak-add" ~/.claude/skills/
 ```
 
 ## How it works
 
-SKILL.md holds the rules (vocabulary, sentence structures, claims, framing, chatbot residue, format). references/vocabulary.md lists the words an agent must not use, and the agent reads it before writing. proofread.py runs after, catches what the agent missed, and compares the draft against your own writing (Burrows's Delta over frequent words and punctuation, with bands derived from your samples).
+SKILL.md has the rules (vocabulary, sentence structures, claims, framing, chatbot residue, format). references/vocabulary.md lists the words an agent must not use, and the agent reads it before writing. proofread.py catches what the agent missed, and compares the draft against your own writing (Burrows's Delta over frequent words and punctuation, bands derived from your samples).
 
 ## Your voice
 
-Put your own prose in references/reference-writing/, one file per register. references/style.md collects your personal rules, the corrections that are yours and not slop. Both start empty. General corrections go to the vocabulary and the rules, personal ones to your style file, and you approve every promotion.
+Put your own prose in references/reference-writing/, one file per register. references/style.md collects your personal rules. General corrections go to the vocabulary and the rules, personal ones to your style file.
 
 `/unspeak add word, phrase, "bad snippet"` files new offenders directly.

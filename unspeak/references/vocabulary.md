@@ -25,7 +25,9 @@ currency, worth, state, matters, fire, reach for, reaches for,
 govern, governed, governs, the best part, stay put, come and go, comes and goes,
 here's what, still early, we're early, beats, verbatim, centerpiece, gauntlet, bolted,
 panel, not perfect yet, isn't perfect yet, rather than, arm, arms,
-land, lands, landed, landing, each one,
+land, lands, landed, landing, each one, the easy part, the hard part,
+no one, no single, just one, single,
+bucket, buckets,
 bolt on, spin up, spins up, spun up, belongs, belong,
 coin, gate, architect, onboard, action, gift, medal, sunset, greenlight,
 delve, testament, pivotal, crucial, robust, seamless, leverage, utilize, foster,
@@ -83,12 +85,13 @@ script flags these only as the subject of a claim and skips ordinary determiners
 nobody, nothing, everything, anything, everyone, none, never, always
 ```
 
-## Terms the land ban spares
+## Spared phrases
 
-`landing page` is a product term, not the verb.
+Literal uses of banned words. A hit inside one of these phrases passes.
 
 ```words
-landing page, landing pages
+landing page, landing pages, s3 bucket, s3 buckets, storage bucket,
+storage buckets, gcs bucket
 ```
 
 ## Structural nouns

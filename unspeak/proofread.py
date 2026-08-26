@@ -125,7 +125,7 @@ def load_vocabulary(path: Path = VOCAB) -> dict[str, list[str]]:
         if in_block:
             for item in line.split(","):
                 item = item.strip().rstrip(".").lower()
-                if item and re.fullmatch(r"[a-z][a-z' -]{1,38}", item):
+                if item and re.fullmatch(r"[a-z][a-z0-9' -]{1,38}", item):
                     sections[current].append(item)
             continue
 
@@ -854,11 +854,11 @@ def run_checks(raw: str, vocab: dict[str, list[str]],
                                         carve_out=section(vocab, "structural nouns"))
                  if not kept(f)]
     findings += check_words(text, section(style, "personal vocabulary"), "personal style")
-    spare = {w.lower() for w in section(vocab, "land ban spares")}
-    findings = [f for f in findings
-                if not (f.text.lower().startswith("land") and any(
-                    term.startswith(f.text.lower()) and term in (f.note or "").lower().replace("<<","").replace(">>","")
-                    for term in spare))]
+    spare = [w.lower() for w in section(vocab, "spared phrases")]
+    def spared(f: Finding) -> bool:
+        clause = (f.note or "").lower().replace("<<", "").replace(">>", "")
+        return any(f.text.lower() in term and term in clause for term in spare)
+    findings = [f for f in findings if not spared(f)]
     findings += check_absence(text)
     findings += check_buried_verbs(text)
     findings += check_headings(text)

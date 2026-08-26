@@ -73,6 +73,8 @@ An LLM sentence wraps its point in a setup and a tail. The structures below are 
 ## Framing
 
 1. **Staged narration:** "...and then watched the old answer come back"; write what happened.
+17. **Novelized detail:** "the kind of slowness users feel and stop reporting", "the way wellness apps promise"; cut the color and give the measurable fact.
+18. **Narrative in technical writing:** "we trusted it a little less every time we waited", "in a place we rarely opened", "adding an index would have been a guess"; technical writing is mechanism, numbers, and steps, and every sentence must give the reader information. No story arc, no feelings, no scene.
 2. **Throat-clearing:** "Here's the thing:", "The truth is,".
 3. **Rhetorical setup:** "What if I told you", "Think about it:", "The catch?".
 4. **Faux insight:** "what nobody tells you", "the part everyone misses".
@@ -109,11 +111,15 @@ An LLM sentence wraps its point in a setup and a tail. The structures below are 
 
 Embody the writer and say the thing in the most true, accurate, and earnest way it can be said: their experience, plainly, with no embellishment and no metaphor.
 
-## Dumping corrections
+## First run
 
-`/unspeak add ...` is a promotion, already decided: the user is dumping words, phrases, or bad snippets for you to file. Allocate each item yourself: LLM words to `vocabulary.md`, personal-only items to `style.md`, snippets with a fix to `examples.md`, and anything you cannot place to `candidates.md` marked unsure. Show the user what went where. This is the one case where you edit the lists directly.
+The skill works before any personal layer exists: the rules and vocabulary apply in full, and `proofread.py` reports the voice comparison as dark instead of failing. Never ask the user to copy files anywhere.
 
-Any other invocation ("/unspeak write about...", "/unspeak this draft") is a writing or editing request under the rules above. When an invocation reads both ways, ask.
+When `references/reference-writing/` has no samples or `style.md` is empty, offer once to set them up, and run the same flow whenever the user invokes `/unspeak-init` (its own skill, in the sibling folder `unspeak-init/`): ask the user to paste two or three pieces of their own writing, or name files or links you can read. You create the register files, wrap the text in the `<!-- verbatim -->` markers, fill the frontmatter, run `proofread.py` on a sample, and tell the user which checks came alive. If they decline, keep writing under the general rules and offer again only when they correct your voice.
+
+## Commands
+
+`/unspeak` is for writing only: "/unspeak write about...", "/unspeak this draft", or bare, which applies to the draft in front of you. Setup lives in `/unspeak-init` and list promotion in `/unspeak-add`, separate skills in sibling folders.
 
 ## Corrections: how this skill learns
 
