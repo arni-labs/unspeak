@@ -41,5 +41,3 @@ SKILL.md has the rules (vocabulary, sentence structures, claims, framing, chatbo
 ## Your voice
 
 Put your own prose in references/reference-writing/, one file per register. references/style.md collects your personal rules. General corrections go to the vocabulary and the rules, personal ones to your style file.
-
-`/unspeak add word, phrase, "bad snippet"` files new offenders directly.
