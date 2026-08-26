@@ -91,7 +91,8 @@ Literal uses of banned words. A hit inside one of these phrases passes.
 
 ```words
 landing page, landing pages, s3 bucket, s3 buckets, storage bucket,
-storage buckets, gcs bucket
+storage buckets, gcs bucket, my arm, my arms, her arm, his arm, your arm,
+their arm, left arm, right arm, both arms
 ```
 
 ## Structural nouns
