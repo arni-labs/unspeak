@@ -126,7 +126,7 @@ Embody the writer and say the thing in the most true, accurate, and earnest way 
 
 The skill works before any personal layer exists: the rules and vocabulary apply in full, and `proofread.py` reports the voice comparison as dark instead of failing. Never ask the user to copy files anywhere.
 
-When `references/reference-writing/` has no samples or `style.md` is empty, offer once to set them up, and run the same flow whenever the user invokes `/unspeak-init` (its own skill, in the sibling folder `unspeak-init/`): ask the user to paste two or three pieces of their own writing, or name files or links you can read. You create the register files, wrap the text in the `<!-- verbatim -->` markers, fill the frontmatter, run `proofread.py` on a sample, and tell the user which checks came alive. If they decline, keep writing under the general rules and offer again only when they correct your voice.
+When `references/reference-writing/` has no samples or `style.md` is empty, offer once to set them up, and run the same flow whenever the user invokes `/unspeak-init` (its own skill, in the sibling folder `unspeak-init/`): ask the user to paste two or three pieces of their own writing, or name files or links you can read. You create the register files, wrap the text in the `<!-- verbatim -->` markers, fill the frontmatter, run `proofread.py` on a sample, write their `VOICE.md` with `proofread.py --voice-md`, and tell the user which checks came alive. If they decline, keep writing under the general rules and offer again only when they correct your voice.
 
 ## Commands
 
@@ -139,7 +139,7 @@ Every correction from the user feeds one of two layers. Allocate it with one tes
 1. **General (slop).** The correction would apply to anyone: a tell, a banned word, a structure. Append their version, yours, and the date to `references/candidates.md`. A word cut three times across different documents is a candidate for `vocabulary.md` or a new SKILL.md item.
 2. **Personal (style).** Ordinary English the author avoids, a formatting habit, a term of art the vocabulary wrongly flags. Append to the Unconfirmed section of `references/style.md` with the date and the correction.
 
-The user promotes. Never edit `vocabulary.md`, the confirmed part of `style.md`, or this file yourself. Bring candidates clearly and concisely and let them decide. When unsure which layer, put it in candidates.md and say you are unsure.
+The user promotes. Never edit `vocabulary.md`, the confirmed part of `style.md`, or this file yourself. Bring candidates clearly and concisely and let them decide. When unsure which layer, put it in candidates.md and say you are unsure. After a promotion or a new sample, rebuild `VOICE.md` with `proofread.py --voice-md`; a normal run says when it is out of date.
 
 A new user starts with an empty `style.md` and their own files in `reference-writing/`. Everything else transfers as is.  
   
@@ -151,4 +151,5 @@ Self-audit, think about "What makes this obviously AI generated?" and fix remain
 - `references/examples.md`: good and bad.
 - `references/style.md`: the user's personal rules, terms of art, and personal vocabulary. Grows from corrections.
 - `references/reference-writing/`: the user's own prose, one file per register. Replaceable. See its README.
+- `references/VOICE.md`: the user's voice as one file, for any agent or tool without this skill. Same layout and band schema as a Katagami writing style (VOICE.md v3.3-lean, `katagami:voice-bands/v1`): sample excerpts, the confirmed rules from `style.md`, and numbers measured per register. `proofread.py --voice-md` builds it from the files above; never edit it by hand.
 

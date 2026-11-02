@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import statistics
 import sys
@@ -505,6 +506,8 @@ CHUNK_WORDS = 220
 CHUNK_MIN = 140
 MFW_N = 150
 VOICE_MIN_DRAFT = 150
+# Nine chunks is where sigma and the p10-p90 bands stop being noise.
+BAND_MIN_CHUNKS = 9
 
 
 def _register_of(text: str) -> str:
@@ -660,9 +663,8 @@ def voice_report(raw: str, register: str | None = None):
         chunks = reference_chunks(r)
         words = sum(len(c.split()) for c in chunks)
         # The gate is chunk count, not raw words: sigma and the p10-p90 bands
-        # come from the chunks, and nine 220-word chunks is where they stop
-        # being noise. A word floor on top of that just re-counts the same thing.
-        if len(chunks) >= 9:
+        # come from the chunks. A word floor on top just re-counts the same thing.
+        if len(chunks) >= BAND_MIN_CHUNKS:
             profiles.append((r, VoiceProfile(chunks), words))
     if not profiles:
         total = sum(len(c.split()) for c in reference_chunks(None))
@@ -848,6 +850,309 @@ def compare(before: str, after: str, vocab: dict[str, list[str]]) -> list[Findin
     return out
 
 
+# ── VOICE.md ──────────────────────────────────────────────────────────────
+# The portable handoff: one file another agent can write in this voice from,
+# without this skill. It follows Katagami's writing-style VOICE.md (format
+# v3.3-lean) and its band schema (katagami:voice-bands/v1), so a voice made here
+# reads like one from the Katagami library. Two differences, both because the
+# file lives on the author's disk: corpus files are paths instead of Katagami
+# file ids, and there is one bands block per register, because this skill never
+# pools registers (see voice_report).
+#
+# Everything in it is copied (the verbatim samples, the confirmed parts of
+# style.md) or measured from the samples. Nothing is composed, so the file is
+# rebuilt and never edited, and a normal run says when it is out of date.
+
+VOICE_MD = SKILL_DIR / "references" / "VOICE.md"
+VOICE_MD_FORMAT = "v3.3-lean"
+SAMPLE_EXCERPT_WORDS = 400
+
+# The bands use Katagami's word and sentence splitting, not this file's, so they
+# mean what the schema says wherever they are checked.
+KG_FUNCTION_WORDS = """the a an and or but if then so of to in on at by for with from as is are
+    was were be been it its this that these those i you we they he she not no do does did have
+    has had will would can""".split()
+KG_CONNECTIVES = set("""however moreover furthermore additionally thus therefore indeed notably
+    importantly crucially consequently nevertheless nonetheless ultimately""".split())
+
+
+def _kg_words(text: str) -> list[str]:
+    return [w.lower() for w in re.split(r"[^0-9A-Za-z']+", text) if w]
+
+
+def _kg_sentences(text: str) -> list[str]:
+    return [s.strip() for s in re.split(r"[.!?]", text) if s.strip()]
+
+
+def _fw_distribution(words: list[str]) -> list[float]:
+    counts = [words.count(f) for f in KG_FUNCTION_WORDS]
+    total = sum(counts)
+    return [c / total for c in counts] if total else [0.0] * len(counts)
+
+
+def _js(p: list[float], q: list[float]) -> float:
+    m = [(a + b) / 2 for a, b in zip(p, q)]
+
+    def kl(a, b):
+        return sum(x * math.log(x / max(y, 1e-12)) for x, y in zip(a, b) if x > 0)
+    return max(0.0, 0.5 * kl(p, m) + 0.5 * kl(q, m))
+
+
+def _floor(x: float, places: int) -> float:
+    return math.floor(x * 10 ** places) / 10 ** places
+
+
+def _ceil(x: float, places: int) -> float:
+    return math.ceil(x * 10 ** places) / 10 ** places
+
+
+def _frontmatter(raw: str) -> dict[str, str]:
+    m = _FRONTMATTER.match(raw)
+    if not m:
+        return {}
+    pairs = (re.match(r"^(\w+):\s*(.*)$", line) for line in m.group(0).splitlines())
+    return {k.group(1): k.group(2).strip() for k in pairs if k}
+
+
+def _section_items(path: Path, heading: str) -> list[str]:
+    """Numbered or bulleted entries under a heading, with wrapped lines joined.
+    Called on style.md only for confirmed headings: Unconfirmed never reaches
+    VOICE.md."""
+    if not path.exists():
+        return []
+    items, inside = [], False
+    for line in path.read_text().splitlines():
+        if line.startswith("## "):
+            inside = line[3:].strip().lower().startswith(heading)
+            continue
+        if not inside:
+            continue
+        item = re.match(r"^(?:-|\d+\.)\s+(.*)", line)
+        if item:
+            items.append(item.group(1).strip())
+        elif items and line.startswith("  ") and line.strip():
+            items[-1] += " " + line.strip()
+    return items
+
+
+def _excerpt(body: str) -> str:
+    """Whole paragraphs from the start until the excerpt reads on its own."""
+    out, words = [], 0
+    for para in re.split(r"\n\s*\n", body.strip()):
+        out.append(para)
+        words += len(_kg_words(para))
+        if words >= SAMPLE_EXCERPT_WORDS:
+            break
+    return "\n\n".join(out)
+
+
+def _indent(text: str) -> str:
+    return "\n".join("   " + line if line.strip() else "" for line in text.splitlines())
+
+
+def _register_texts() -> dict[str, list[tuple[Path, dict[str, str], str]]]:
+    regs: dict[str, list] = {}
+    for path in reference_files():
+        raw = path.read_text()
+        body = verbatim_of(raw).strip()
+        if body:
+            regs.setdefault(_register_of(raw), []).append((path, _frontmatter(raw), body))
+    return regs
+
+
+def _fingerprint(register: str, bodies: list[str], banned: list[str]) -> tuple[str, dict]:
+    """The measured paragraph and the bands for one register."""
+    joined = "\n\n".join(bodies)
+    words = _kg_words(joined)
+    n_words = max(len(words), 1)
+
+    def per_k(mark: str) -> float:
+        return joined.count(mark) * 1000 / n_words
+
+    # Openers are not banded, so they use this file's prose-aware splitter,
+    # which does not cut "VOICE.md" into a sentence that opens with "md".
+    openers = [w[0].lower() for w in (WORD.findall(s) for s in sentences(joined)) if w]
+    top = sorted(((openers.count(o), o) for o in set(openers)), reverse=True)[:5]
+    connectives = sum(1 for w in words if w in KG_CONNECTIVES)
+    bands: dict = {"schema": "katagami:voice-bands/v1", "register": register,
+                   "banned_phrases": banned, "min_words_to_evaluate": VOICE_MIN_DRAFT}
+    chunks = reference_chunks(register)
+    counts = (f"{len(bodies)} sample{'s' if len(bodies) != 1 else ''} and {len(words):,} words, "
+              f"{len(chunks)} stretches of {CHUNK_WORDS} words")
+    rates = (f"Per 1,000 words: {per_k(','):.0f} commas, {per_k(';'):.1f} semicolons, "
+             f"{per_k(':'):.1f} colons, {per_k('('):.1f} parentheses, {per_k('?'):.1f} questions, "
+             f"{per_k('!'):.1f} exclamation marks and "
+             f"{connectives * 1000 / n_words:.1f} formal connectives (however, moreover, thus and "
+             f"the rest). The commonest sentence openers are "
+             f"{', '.join(f'{w} ({n})' for n, w in top)}.")
+    if len(chunks) < BAND_MIN_CHUNKS:
+        return (f"**{register}**: {counts}. {rates} Statistical bands start at {BAND_MIN_CHUNKS} "
+                f"stretches, about 2,000 words in one register, so this block holds only the banned "
+                f"phrases."), bands
+    means, spreads, ttrs, fws, punct = [], [], [], [], {}
+    reference = _fw_distribution(words)
+    for chunk in chunks:
+        cw = _kg_words(chunk)
+        lens = [len(_kg_words(s)) for s in _kg_sentences(chunk)]
+        means.append(statistics.mean(lens))
+        spreads.append(statistics.pstdev(lens))
+        ttrs.append(len(set(cw)) / len(cw))
+        fws.append(_js(_fw_distribution(cw), reference))
+        # No em-dash band: unspeak's format rules ban em dashes in anything it
+        # writes, whatever the samples do, and Never says so. A band derived
+        # from samples that use them would tell the next agent the opposite.
+        for key, mark in (("exclamations_per_1000_words", "!"),
+                          ("semicolons_per_1000_words", ";")):
+            punct.setdefault(key, []).append(chunk.count(mark) * 1000 / len(cw))
+    # Each band is the full range of the author's own stretches, rounded
+    # outward, so every stretch of their writing passes it.
+    bands.update({
+        "sentence_length": {"mean": [_floor(min(means), 1), _ceil(max(means), 1)],
+                            "stdev_min": _floor(min(spreads), 1)},
+        "punctuation": {k: [_floor(min(v), 1), _ceil(max(v), 1)] for k, v in punct.items()},
+        "type_token_ratio": {"min": _floor(min(ttrs), 2), "window_words": CHUNK_WORDS},
+        "function_words": {"max_distance": _ceil(max(fws), 3)},
+    })
+    prose = (f"**{register}**: {counts}. Sentence means run from {min(means):.1f} to "
+             f"{max(means):.1f} words, with a spread inside each stretch of {min(spreads):.1f} to "
+             f"{max(spreads):.1f}, so length varies as much as it averages. Type-token ratio over "
+             f"{CHUNK_WORDS} words sits between {min(ttrs):.2f} and {max(ttrs):.2f}. {rates}")
+    return prose, bands
+
+
+def build_voice_md() -> str | None:
+    """The VOICE.md text for the current samples and style.md, or None with no samples."""
+    regs = _register_texts()
+    if not regs:
+        return None
+    meta = _frontmatter(STYLE.read_text()) if STYLE.exists() else {}
+    author = meta.get("author", "")
+    named = author and author not in ("you", "the user")
+    name = f"Voice of {author}" if named else "Personal voice"
+    style_words = load_style()
+    personal = section(style_words, "personal vocabulary")
+    terms = section(style_words, "terms of art")
+    vocab = load_vocabulary()
+    general = section(vocab, "^words") + section(vocab, "chatbot residue")
+
+    samples, files, links, prints = [], [], [], []
+    n = 0
+    for register, entries in regs.items():
+        lowered = "\n".join(body for _, _, body in entries).lower()
+        # The schema matches banned phrases as substrings. A phrase the author's
+        # own samples contain (even inside a longer word) is their usage, and
+        # banning it would fail their own writing, so it stays off.
+        banned = list(dict.fromkeys(w for w in personal + general if w not in lowered))
+        prose, bands = _fingerprint(register, [b for _, _, b in entries], banned)
+        prints.append(f"{prose}\n\n```json\n{json.dumps(bands, indent=2)}\n```")
+        for path, front, body in entries:
+            n += 1
+            rel = path.relative_to(SKILL_DIR / "references").as_posix()
+            source = front.get("source") or path.stem
+            count = len(_kg_words(body))
+            excerpt = _excerpt(body)
+            part = ("the whole sample" if excerpt == body.strip()
+                    else f"the opening {len(_kg_words(excerpt))} words of {count}")
+            samples.append(f"{n}. Source: {source} ({register}, {part}).\n\n{_indent(excerpt)}")
+            files.append(f"    - {{path: {rel}, register: {register}, "
+                         f"source: {json.dumps(source)}, words: {count}}}")
+            links.append(f"- Passage {n}: {rel} ({register}, {count} words)")
+
+    never = _section_items(STYLE, "never")
+    rules = _section_items(STYLE, "rules")
+    use = _section_items(STYLE, "use") + terms
+    # unspeak's format rules hold for every author, so the handoff carries them.
+    house = _section_items(SKILL_DIR / "SKILL.md", "format")
+    vocab_parts = []
+    if use:
+        vocab_parts.append("Reach for these:\n\n" + "\n".join(f"- {u}" for u in use))
+    if rules:
+        vocab_parts.append("Habits:\n\n" + "\n".join(f"- {r}" for r in rules))
+    if personal:
+        vocab_parts.append("Ordinary words this voice never uses: " + ", ".join(personal) + ".")
+    vocab_parts.append("The general LLM tells this voice refuses are the banned phrases in "
+                       "each bands block below.")
+    never_text = ("\n".join(f"- {r}" for r in never) if never else
+                  "The author has confirmed no personal rules yet. The samples and the bands "
+                  "below carry the voice until they do.")
+    if house:
+        never_text += ("\n\nunspeak's format rules, which hold for every author:\n\n"
+                       + "\n".join(f"- {r}" for r in house))
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    nl, para = "\n", "\n\n"
+
+    return f"""---
+version: {VOICE_MD_FORMAT}
+kind: voice
+name: {name}
+slug: {slug}
+corpus:
+  consent: opt_in
+  author: {author if named else 'the user'}
+  license: {meta.get('license', 'private')}
+  samples: {n}
+  provenance: the author's own writing, filed by unspeak-init
+  files:
+{nl.join(files)}
+---
+
+# {name}
+
+This file is built by unspeak from the author's own writing and the rules they
+confirmed. An agent given only this file can write in the voice: read the
+samples, keep to Never, and write to the numbers.
+
+## Never
+
+{never_text}
+
+## Gold standard samples
+
+Each numbered entry is the author's own writing, quoted as it stands.
+
+{para.join(samples)}
+
+## Signature vocabulary
+
+{para.join(vocab_parts)}
+
+## Measured fingerprint
+
+Measured from the samples, one register at a time. Write to these numbers: a
+draft in a register should fall inside that register's bands.
+
+{para.join(prints)}
+
+## Corpus
+
+The full text of every sample above:
+
+{nl.join(links)}
+"""
+
+
+def write_voice_md() -> int:
+    text = build_voice_md()
+    if text is None:
+        print("no reference samples: run /unspeak-init to add some")
+        return 1
+    VOICE_MD.write_text(text)
+    print(f"wrote {VOICE_MD} ({len(WORD.findall(text)):,} words)")
+    return 0
+
+
+def voice_md_note() -> str | None:
+    """A line for a normal run when VOICE.md is missing or behind its sources."""
+    text = build_voice_md()
+    if text is None:
+        return None
+    if not VOICE_MD.exists():
+        return "no VOICE.md yet: proofread.py --voice-md writes one"
+    if VOICE_MD.read_text() != text:
+        return "VOICE.md is out of date with the samples or style.md: run proofread.py --voice-md"
+    return None
+
+
 # ── driver ────────────────────────────────────────────────────────────────
 
 def load_style() -> dict[str, list[str]]:
@@ -962,22 +1267,26 @@ def main() -> int:
     ap.add_argument("--register", help="compare only against reference files with this register")
     ap.add_argument("--sample", action="store_true",
                     help="print the matching verbatim reference sample for use as a generation prompt prefix")
+    ap.add_argument("--voice-md", action="store_true",
+                    help="write references/VOICE.md from the samples and style.md")
     args = ap.parse_args()
 
     if args.sample:
         return print_sample(args.register)
+    if args.voice_md:
+        return write_voice_md()
 
     vocab = load_vocabulary()
     words, live = corpus_status()
 
     paths = list(args.files)
     if args.self:
-        # reference-writing/ is the author's verbatim prose, kept as data.
-        # Linting it would demand edits that corrupt the reference, so the
-        # self-scan covers the skill's own files only.
+        # reference-writing/ is the author's verbatim prose, kept as data, and
+        # VOICE.md quotes it. Linting either would demand edits that corrupt
+        # the reference, so the self-scan covers the skill's own files only.
         paths = [SKILL_DIR / "SKILL.md"] + sorted(
             p for p in (SKILL_DIR / "references").rglob("*.md")
-            if REFERENCE_DIR not in p.parents)
+            if REFERENCE_DIR not in p.parents and p != VOICE_MD)
 
     if not paths:
         ap.error("give a file, or --self")
@@ -1014,6 +1323,9 @@ def main() -> int:
     else:
         print(f"\nreference corpus: {words} words")
         print(f"divergence checks: {'live' if live else f'dark, needs {DIVERGENCE_MIN_WORDS}'}")
+        note = voice_md_note()
+        if note:
+            print(note)
     return 1 if total else 0
 
 
