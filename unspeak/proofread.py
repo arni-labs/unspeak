@@ -29,6 +29,14 @@ VOCAB = SKILL_DIR / "references" / "vocabulary.md"
 STYLE = SKILL_DIR / "references" / "style.md"
 REFERENCE_DIR = SKILL_DIR / "references" / "reference-writing"
 
+
+def reference_files() -> list[Path]:
+    """The author's samples. README.md explains the folder and shows the
+    verbatim markers, so its example text is not the author's writing."""
+    if not REFERENCE_DIR.exists():
+        return []
+    return sorted(p for p in REFERENCE_DIR.glob("*.md") if p.name != "README.md")
+
 # Divergence against the author's own writing needs enough tokens for the
 # distributions to be stable. Below this it is sampling noise, so the check stays
 # dark and says so rather than reporting a figure nobody should trust.
@@ -477,9 +485,8 @@ def verbatim_of(text: str) -> str:
 
 def corpus_status() -> tuple[int, bool]:
     total = 0
-    if REFERENCE_DIR.exists():
-        for path in REFERENCE_DIR.glob("*.md"):
-            total += len(WORD.findall(mask(verbatim_of(path.read_text()))))
+    for path in reference_files():
+        total += len(WORD.findall(mask(verbatim_of(path.read_text()))))
     return total, total >= DIVERGENCE_MIN_WORDS
 
 
@@ -510,9 +517,7 @@ def reference_chunks(register: str | None = None) -> list[str]:
     bare word lists, which stripped every comma and sentence break and collapsed
     all the metric bands to zero-width."""
     chunks = []
-    if not REFERENCE_DIR.exists():
-        return chunks
-    for path in sorted(REFERENCE_DIR.glob("*.md")):
+    for path in reference_files():
         raw = path.read_text()
         if register and _register_of(raw) != register:
             continue
@@ -637,11 +642,10 @@ METRIC_ADVICE = {
 
 def _registers_available() -> list[str]:
     regs = []
-    if REFERENCE_DIR.exists():
-        for path in sorted(REFERENCE_DIR.glob("*.md")):
-            r = _register_of(path.read_text())
-            if r not in regs and r != "unknown":
-                regs.append(r)
+    for path in reference_files():
+        r = _register_of(path.read_text())
+        if r not in regs and r != "unknown":
+            regs.append(r)
     return regs
 
 
@@ -930,9 +934,8 @@ def print_sample(register: str | None) -> int:
     """--sample [register]: print the verbatim reference sample so a generation
     prompt can carry the author's writing ahead of the task. Corpus as prompt,
     not as reference."""
-    paths = sorted(REFERENCE_DIR.glob("*.md")) if REFERENCE_DIR.exists() else []
     best = None
-    for path in paths:
+    for path in reference_files():
         raw = path.read_text()
         r = _register_of(raw)
         body = verbatim_of(raw).strip()
