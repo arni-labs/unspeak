@@ -10,6 +10,7 @@ A writing skill for coding agents to remove LLM tells and keep the writer's voic
 - `/unspeak-init` builds your voice reference: paste a few pieces of your writing, the agent files them.
 - `/unspeak-add word, phrase, "bad snippet"` files new offenders into the lists.
 - `python3 unspeak/proofread.py draft.md` checks a file without an agent.
+- `python3 unspeak/proofread.py --voice-md` writes `unspeak/references/VOICE.md`, your voice as one file you can hand to any agent.
 
 ## Examples
 
@@ -41,3 +42,5 @@ SKILL.md has the rules (vocabulary, sentence structures, claims, framing, chatbo
 ## Your voice
 
 Put your own prose in references/reference-writing/, one file per register. references/style.md collects your personal rules. General corrections go to the vocabulary and the rules, personal ones to your style file.
+
+`/unspeak-init` also writes references/VOICE.md from those two: an excerpt of each sample, your confirmed rules, and per-register numbers measured from your writing (sentence length and spread, punctuation rates, vocabulary range, function-word distance). It uses the same layout and band schema as a [Katagami](https://katagami.ai) writing style, so any agent can write in your voice from that file alone, and Katagami's checker can score a draft against it. It is built, never edited: run `proofread.py --voice-md` after you add a sample or confirm a rule.

@@ -16,3 +16,5 @@ Allocate every item yourself:
 4. Anything you cannot place goes into `../unspeak/references/candidates.md` marked unsure.
 
 Show the user what went where. This command is the one case where you edit the lists directly. With no arguments, ask what to file.
+
+If anything changed `vocabulary.md` or `style.md` and the user has samples, run `python3 ../unspeak/proofread.py --voice-md` so `VOICE.md` carries it.
